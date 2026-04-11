@@ -76,8 +76,6 @@ namespace SimpleBooking.AppService
 
             JsonBookingRepository.Add(booking);
             JsonOutboxRepository.Append(OutboxMessage.CreateBookingConfirmation(booking));
-
-            ShowMessage("Booking opprettet.");
         }
 
         private void ShowMessage(string message)
