@@ -21,24 +21,7 @@ namespace SimpleBooking.AppService
 
         public void BookHour(DateOnly date)
         {
-            Console.Clear();
-
-            Console.WriteLine($"Dato: {date:dd.MM.yyyy}");
-            Console.WriteLine();
-
             var hourStatuses = _schedule.GetDayStatus(date);
-
-            foreach (var status in hourStatuses)
-            {
-                if (status.IsAvailable)
-                {
-                    Console.WriteLine($"{status.Hour:00}:00  Ledig");
-                }
-                else
-                {
-                    Console.WriteLine($"{status.Hour:00}:00  Opptatt  ({status.Description})");
-                }
-            }
 
             if (hourStatuses.All(x => !x.IsAvailable))
             {

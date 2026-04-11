@@ -27,14 +27,9 @@
                 var existingBooking = _bookings
                     .FirstOrDefault(b => b.Date == date && b.Hour == hour);
 
-                if (existingBooking is null)
-                {
-                    result.Add(new HourStatus(hour, true, null));
-                }
-                else
-                {
-                    result.Add(new HourStatus(hour, false, existingBooking.Description));
-                }
+                result.Add(existingBooking is null
+                    ? new HourStatus(hour, true, null)
+                    : new HourStatus(hour, false, existingBooking.Description));
             }
 
             return result;
@@ -42,20 +37,9 @@
 
         public bool TryAddBooking(Booking booking)
         {
-            if (!IsBookableDate(booking))
-            {
-                return false;
-            }
-
-            if (!IsWithinOpeningHours(booking))
-            {
-                return false;
-            }
-
-            if (HasConflict(booking))
-            {
-                return false;
-            }
+            if (!IsBookableDate(booking)) return false;
+            if (!IsWithinOpeningHours(booking))return false;
+            if (HasConflict(booking)) return false;
 
             _bookings.Add(booking);
             _bookings.Sort((a, b) =>
@@ -67,19 +51,13 @@
             return true;
         }
 
-        private bool HasConflict(Booking booking)
-        {
-            return _bookings.Any(existing => existing.OverlapsWith(booking));
-        }
+        private bool HasConflict(Booking booking) =>
+            _bookings.Any(existing => existing.OverlapsWith(booking));
 
-        private bool IsWithinOpeningHours(Booking booking)
-        {
-            return booking.Hour >= OpeningHour && booking.Hour < ClosingHour;
-        }
+        private bool IsWithinOpeningHours(Booking booking) =>
+            booking.Hour >= OpeningHour && booking.Hour < ClosingHour;
 
-        private bool IsBookableDate(Booking booking)
-        {
-            return booking.Date > _today;
-        }
+        private bool IsBookableDate(Booking booking) =>
+            booking.Date > _today;
     }
 }

@@ -33,29 +33,10 @@ namespace SimpleBooking
 
                 var key = Console.ReadKey(intercept: true).Key;
 
-                switch (key)
-                {
-                    case ConsoleKey.OemPlus:
-                    case ConsoleKey.Add:
-                        _currentDate = _currentDate.AddDays(1);
-                        break;
-
-                    case ConsoleKey.OemMinus:
-                    case ConsoleKey.Subtract:
-                        if (_currentDate > _today)
-                        {
-                            _currentDate = _currentDate.AddDays(-1);
-                        }
-                        break;
-
-                    case ConsoleKey.B:
-                        _bookingService.BookHour(_currentDate);
-                        break;
-
-                    case ConsoleKey.Q:
-                        isRunning = false;
-                        break;
-                }
+                if (key == ConsoleKey.Add) _currentDate = _currentDate.AddDays(1);
+                else if (key == ConsoleKey.Subtract && _currentDate > _today) _currentDate = _currentDate.AddDays(-1);
+                else if (key == ConsoleKey.B) _bookingService.BookHour(_currentDate);
+                else if (key == ConsoleKey.Q) isRunning = false;
             }
         }
 
@@ -68,14 +49,11 @@ namespace SimpleBooking
 
             foreach (var status in hourStatuses)
             {
-                if (status.IsAvailable)
-                {
-                    Console.WriteLine($"{status.Hour:00}:00  Ledig");
-                }
-                else
-                {
-                    Console.WriteLine($"{status.Hour:00}:00  Opptatt  ({status.Description})");
-                }
+                var statusText = status.IsAvailable
+                    ? "Ledig"
+                    : $"Opptatt  ({status.Description})";
+
+                Console.WriteLine($"{status.Hour:00}:00  {statusText}");
             }
         }
     }
