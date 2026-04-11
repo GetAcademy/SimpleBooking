@@ -5,12 +5,14 @@ namespace SimpleBooking
     class BookingApp
     {
         private readonly BookingService _bookingService;
+        private readonly DateOnly _today;
         private DateOnly _currentDate;
 
         public BookingApp()
         {
             _bookingService = new BookingService();
-            _currentDate = DateOnly.FromDateTime(DateTime.Today);
+            _today = DateOnly.FromDateTime(DateTime.Today);
+            _currentDate = _today;
         }
 
         public void Run()
@@ -40,7 +42,10 @@ namespace SimpleBooking
 
                     case ConsoleKey.OemMinus:
                     case ConsoleKey.Subtract:
-                        _currentDate = _currentDate.AddDays(-1);
+                        if (_currentDate > _today)
+                        {
+                            _currentDate = _currentDate.AddDays(-1);
+                        }
                         break;
 
                     case ConsoleKey.B:
@@ -59,18 +64,18 @@ namespace SimpleBooking
             Console.WriteLine($"Dato: {_currentDate:dd.MM.yyyy}");
             Console.WriteLine();
 
-            var availableHours = _bookingService.GetAvailableHours(_currentDate);
+            var hourStatuses = _bookingService.GetDayStatus(_currentDate);
 
-            Console.WriteLine("Ledige timer:");
-            if (availableHours.Count == 0)
+            foreach (var status in hourStatuses)
             {
-                Console.WriteLine("Ingen ledige timer.");
-                return;
-            }
-
-            foreach (var hour in availableHours)
-            {
-                Console.WriteLine($"- {hour:00}:00");
+                if (status.IsAvailable)
+                {
+                    Console.WriteLine($"{status.Hour:00}:00  Ledig");
+                }
+                else
+                {
+                    Console.WriteLine($"{status.Hour:00}:00  Opptatt  ({status.Description})");
+                }
             }
         }
     }

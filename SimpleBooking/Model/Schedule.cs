@@ -6,34 +6,47 @@
         public const int ClosingHour = 16; // 8-15 er bookbare timer
 
         private readonly List<Booking> _bookings;
+        private readonly DateOnly _today;
 
-        public Schedule(IEnumerable<Booking> bookings)
+        public Schedule(IEnumerable<Booking> bookings, DateOnly today)
         {
             _bookings = bookings
                 .OrderBy(b => b.Date)
                 .ThenBy(b => b.Hour)
                 .ToList();
+
+            _today = today;
         }
 
-        public List<int> GetAvailableHours(DateOnly date)
+        public List<HourStatus> GetDayStatus(DateOnly date)
         {
-            var availableHours = new List<int>();
+            var result = new List<HourStatus>();
 
             for (var hour = OpeningHour; hour < ClosingHour; hour++)
             {
-                var candidate = new Booking(date, hour, "candidate");
+                var existingBooking = _bookings
+                    .FirstOrDefault(b => b.Date == date && b.Hour == hour);
 
-                if (!HasConflict(candidate))
+                if (existingBooking is null)
                 {
-                    availableHours.Add(hour);
+                    result.Add(new HourStatus(hour, true, null));
+                }
+                else
+                {
+                    result.Add(new HourStatus(hour, false, existingBooking.Description));
                 }
             }
 
-            return availableHours;
+            return result;
         }
 
         public bool TryAddBooking(Booking booking)
         {
+            if (!IsBookableDate(booking))
+            {
+                return false;
+            }
+
             if (!IsWithinOpeningHours(booking))
             {
                 return false;
@@ -62,6 +75,11 @@
         private bool IsWithinOpeningHours(Booking booking)
         {
             return booking.Hour >= OpeningHour && booking.Hour < ClosingHour;
+        }
+
+        private bool IsBookableDate(Booking booking)
+        {
+            return booking.Date > _today;
         }
     }
 }

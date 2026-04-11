@@ -10,12 +10,13 @@ namespace SimpleBooking.AppService
         public BookingService()
         {
             var bookings = JsonBookingRepository.GetAll();
-            _schedule = new Schedule(bookings);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            _schedule = new Schedule(bookings, today);
         }
 
-        public List<int> GetAvailableHours(DateOnly date)
+        public List<HourStatus> GetDayStatus(DateOnly date)
         {
-            return _schedule.GetAvailableHours(date);
+            return _schedule.GetDayStatus(date);
         }
 
         public void BookHour(DateOnly date)
@@ -25,19 +26,24 @@ namespace SimpleBooking.AppService
             Console.WriteLine($"Dato: {date:dd.MM.yyyy}");
             Console.WriteLine();
 
-            var availableHours = _schedule.GetAvailableHours(date);
+            var hourStatuses = _schedule.GetDayStatus(date);
 
-            Console.WriteLine("Ledige timer:");
-            if (availableHours.Count == 0)
+            foreach (var status in hourStatuses)
             {
-                Console.WriteLine("Ingen ledige timer.");
-                ShowMessage("Det er ingen ledige timer å booke.");
-                return;
+                if (status.IsAvailable)
+                {
+                    Console.WriteLine($"{status.Hour:00}:00  Ledig");
+                }
+                else
+                {
+                    Console.WriteLine($"{status.Hour:00}:00  Opptatt  ({status.Description})");
+                }
             }
 
-            foreach (var availableHour in availableHours)
+            if (hourStatuses.All(x => !x.IsAvailable))
             {
-                Console.WriteLine($"- {availableHour:00}:00");
+                ShowMessage("Det er ingen ledige timer å booke.");
+                return;
             }
 
             Console.WriteLine();
