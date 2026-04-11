@@ -1,29 +1,21 @@
 ﻿using SimpleBooking.Model;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 
 namespace SimpleBooking.DomainService
 {
-    internal class JsonBookingRepository
+    static class JsonBookingRepository
     {
-        private readonly string _filePath;
-        private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+        private const string FilePath = "bookings.json";
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-        public JsonBookingRepository(string filePath)
+        public static List<Booking> GetAll()
         {
-            _filePath = filePath;
-        }
-
-        public List<Booking> GetAll()
-        {
-            if (!File.Exists(_filePath))
+            if (!File.Exists(FilePath))
             {
                 return new List<Booking>();
             }
 
-            var json = File.ReadAllText(_filePath);
+            var json = File.ReadAllText(FilePath);
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -33,17 +25,13 @@ namespace SimpleBooking.DomainService
             return JsonSerializer.Deserialize<List<Booking>>(json) ?? new List<Booking>();
         }
 
-        public void Add(Booking booking)
+        public static void Add(Booking booking)
         {
             var bookings = GetAll();
             bookings.Add(booking);
-            SaveAll(bookings);
-        }
 
-        private void SaveAll(List<Booking> bookings)
-        {
-            var json = JsonSerializer.Serialize(bookings, _jsonOptions);
-            File.WriteAllText(_filePath, json);
+            var json = JsonSerializer.Serialize(bookings, JsonOptions);
+            File.WriteAllText(FilePath, json);
         }
     }
 }

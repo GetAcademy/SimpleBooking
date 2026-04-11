@@ -1,75 +1,46 @@
-﻿using SimpleBooking.Model;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
-using SimpleBooking.DomainService;
+﻿using SimpleBooking.DomainService;
+using SimpleBooking.Model;
 
-namespace SimpleBooking.Service
+namespace SimpleBooking.AppService
 {
-    internal class BookingService
+    class BookingService
     {
-        private readonly JsonBookingRepository _bookingRepository;
-        private readonly JsonOutboxRepository _outboxRepository;
+        private readonly Schedule _schedule;
 
-        private const int OpeningHour = 8;
-        private const int ClosingHour = 16; // 8-15 er bookbare timer
-
-        public BookingService(
-            JsonBookingRepository bookingRepository,
-            JsonOutboxRepository outboxRepository)
+        public BookingService()
         {
-            _bookingRepository = bookingRepository;
-            _outboxRepository = outboxRepository;
+            var bookings = JsonBookingRepository.GetAll();
+            _schedule = new Schedule(bookings);
         }
 
-        public void ShowDay(DateOnly date)
+        public List<int> GetAvailableHours(DateOnly date)
         {
-            Console.WriteLine($"Dato: {date:dd.MM.yyyy}");
-            Console.WriteLine();
-
-            var availableHours = GetAvailableHours(date);
-
-            Console.WriteLine("Ledige timer:");
-            if (availableHours.Count == 0)
-            {
-                Console.WriteLine("Ingen ledige timer.");
-            }
-            else
-            {
-                foreach (var hour in availableHours)
-                {
-                    Console.WriteLine($"- {hour:00}:00");
-                }
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("Opptatte timer:");
-
-            var bookings = _bookingRepository.GetAll()
-                .Where(b => b.Date == date)
-                .OrderBy(b => b.Hour)
-                .ToList();
-
-            if (bookings.Count == 0)
-            {
-                Console.WriteLine("Ingen bookinger.");
-            }
-            else
-            {
-                foreach (var booking in bookings)
-                {
-                    Console.WriteLine($"- {booking.Hour:00}:00  {booking.Description}");
-                }
-            }
+            return _schedule.GetAvailableHours(date);
         }
 
         public void BookHour(DateOnly date)
         {
             Console.Clear();
-            ShowDay(date);
+
+            Console.WriteLine($"Dato: {date:dd.MM.yyyy}");
             Console.WriteLine();
 
+            var availableHours = _schedule.GetAvailableHours(date);
+
+            Console.WriteLine("Ledige timer:");
+            if (availableHours.Count == 0)
+            {
+                Console.WriteLine("Ingen ledige timer.");
+                ShowMessage("Det er ingen ledige timer å booke.");
+                return;
+            }
+
+            foreach (var availableHour in availableHours)
+            {
+                Console.WriteLine($"- {availableHour:00}:00");
+            }
+
+            Console.WriteLine();
             Console.Write("Hvilken time vil du booke? ");
             var hourText = Console.ReadLine();
 
@@ -88,78 +59,19 @@ namespace SimpleBooking.Service
                 return;
             }
 
-            if (!IsWithinOpeningHours(hour))
+            var booking = new Booking(date, hour, description.Trim());
+            var added = _schedule.TryAddBooking(booking);
+
+            if (!added)
             {
-                ShowMessage("Timen er utenfor åpningstid.");
+                ShowMessage("Booking feilet.");
                 return;
             }
 
-            if (!IsAvailable(date, hour))
-            {
-                ShowMessage("Timen er opptatt.");
-                return;
-            }
-
-            var booking = new Booking
-            {
-                Id = Guid.NewGuid(),
-                Date = date,
-                Hour = hour,
-                Description = description.Trim()
-            };
-
-            _bookingRepository.Add(booking);
-
-            var payload = JsonSerializer.Serialize(new
-            {
-                booking.Id,
-                booking.Date,
-                booking.Hour,
-                booking.Description
-            });
-
-            var outboxMessage = new OutboxMessage
-            {
-                Id = Guid.NewGuid(),
-                Type = "BookingConfirmationRequested",
-                CreatedAt = DateTime.UtcNow,
-                Payload = payload
-            };
-
-            _outboxRepository.Append(outboxMessage);
+            JsonBookingRepository.Add(booking);
+            JsonOutboxRepository.Append(OutboxMessage.CreateBookingConfirmation(booking));
 
             ShowMessage("Booking opprettet.");
-        }
-
-        private List<int> GetAvailableHours(DateOnly date)
-        {
-            var bookedHours = _bookingRepository.GetAll()
-                .Where(b => b.Date == date)
-                .Select(b => b.Hour)
-                .ToHashSet();
-
-            var availableHours = new List<int>();
-
-            for (int hour = OpeningHour; hour < ClosingHour; hour++)
-            {
-                if (!bookedHours.Contains(hour))
-                {
-                    availableHours.Add(hour);
-                }
-            }
-
-            return availableHours;
-        }
-
-        private bool IsAvailable(DateOnly date, int hour)
-        {
-            return !_bookingRepository.GetAll()
-                .Any(b => b.Date == date && b.Hour == hour);
-        }
-
-        private bool IsWithinOpeningHours(int hour)
-        {
-            return hour >= OpeningHour && hour < ClosingHour;
         }
 
         private void ShowMessage(string message)

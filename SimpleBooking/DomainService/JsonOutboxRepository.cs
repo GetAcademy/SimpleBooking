@@ -1,29 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using SimpleBooking.Model;
 
 namespace SimpleBooking.DomainService
 {
-    internal class JsonOutboxRepository
+    static class JsonOutboxRepository
     {
-        private readonly string _filePath;
-        private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+        private const string FilePath = "outbox.json";
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-        public JsonOutboxRepository(string filePath)
+        public static List<OutboxMessage> GetAll()
         {
-            _filePath = filePath;
-        }
-
-        public List<OutboxMessage> GetAll()
-        {
-            if (!File.Exists(_filePath))
+            if (!File.Exists(FilePath))
             {
                 return new List<OutboxMessage>();
             }
 
-            var json = File.ReadAllText(_filePath);
+            var json = File.ReadAllText(FilePath);
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -33,17 +25,13 @@ namespace SimpleBooking.DomainService
             return JsonSerializer.Deserialize<List<OutboxMessage>>(json) ?? new List<OutboxMessage>();
         }
 
-        public void Append(OutboxMessage message)
+        public static void Append(OutboxMessage message)
         {
             var messages = GetAll();
             messages.Add(message);
-            SaveAll(messages);
-        }
 
-        private void SaveAll(List<OutboxMessage> messages)
-        {
-            var json = JsonSerializer.Serialize(messages, _jsonOptions);
-            File.WriteAllText(_filePath, json);
+            var json = JsonSerializer.Serialize(messages, JsonOptions);
+            File.WriteAllText(FilePath, json);
         }
     }
 }

@@ -1,29 +1,26 @@
-﻿using SimpleBooking.Service;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using SimpleBooking.AppService;
 
 namespace SimpleBooking
 {
-    internal class BookingApp
+    class BookingApp
     {
         private readonly BookingService _bookingService;
         private DateOnly _currentDate;
 
-        public BookingApp(BookingService bookingService)
+        public BookingApp()
         {
-            _bookingService = bookingService;
+            _bookingService = new BookingService();
             _currentDate = DateOnly.FromDateTime(DateTime.Today);
         }
 
         public void Run()
         {
-            bool isRunning = true;
+            var isRunning = true;
 
             while (isRunning)
             {
                 Console.Clear();
-                _bookingService.ShowDay(_currentDate);
+                ShowCurrentDay();
 
                 Console.WriteLine();
                 Console.WriteLine("[+] Neste dag");
@@ -54,6 +51,26 @@ namespace SimpleBooking
                         isRunning = false;
                         break;
                 }
+            }
+        }
+
+        private void ShowCurrentDay()
+        {
+            Console.WriteLine($"Dato: {_currentDate:dd.MM.yyyy}");
+            Console.WriteLine();
+
+            var availableHours = _bookingService.GetAvailableHours(_currentDate);
+
+            Console.WriteLine("Ledige timer:");
+            if (availableHours.Count == 0)
+            {
+                Console.WriteLine("Ingen ledige timer.");
+                return;
+            }
+
+            foreach (var hour in availableHours)
+            {
+                Console.WriteLine($"- {hour:00}:00");
             }
         }
     }
