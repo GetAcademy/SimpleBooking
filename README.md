@@ -4,7 +4,20 @@ SimpleBooking is a small .NET console application for viewing available booking 
 
 The diagram below shows the current structure of the codebase as implemented today. It focuses on the main classes, their responsibilities, and how data and side effects move through the application.
 
-## UML Class Diagram
+## Initial Architecture Notes and Analysis
+
+The application starts in `Program`, which creates `BookingApp`. `BookingApp` is the console-driven UI loop and delegates booking operations to `BookingService`.
+
+`BookingService` coordinates the booking flow. It loads bookings from `JsonBookingRepository`, applies booking rules through `Schedule`, persists successful bookings back to the booking repository, and appends an `OutboxMessage` through `JsonOutboxRepository`.
+
+The domain model lives in `Model`:
+
+- `Schedule` contains booking rules and availability calculations.
+- `Booking` represents a single reserved hour.
+- `HourStatus` represents the availability of one hour slot.
+- `OutboxMessage` represents an integration event written to the outbox file.
+
+### UML Class Diagram before refactor
 
 ```mermaid
 classDiagram
@@ -79,19 +92,10 @@ classDiagram
     JsonOutboxRepository ..> OutboxMessage : persists
     OutboxMessage ..> Booking : built from
 ```
+## UML Class Diagram after clean-core refactor
 
-## Architecture Notes
+## UML Class Diagram after SOLID refactor
 
-The application starts in `Program`, which creates `BookingApp`. `BookingApp` is the console-driven UI loop and delegates booking operations to `BookingService`.
-
-`BookingService` coordinates the booking flow. It loads bookings from `JsonBookingRepository`, applies booking rules through `Schedule`, persists successful bookings back to the booking repository, and appends an `OutboxMessage` through `JsonOutboxRepository`.
-
-The domain model lives in `Model`:
-
-- `Schedule` contains booking rules and availability calculations.
-- `Booking` represents a single reserved hour.
-- `HourStatus` represents the availability of one hour slot.
-- `OutboxMessage` represents an integration event written to the outbox file.
 
 ## Side Effects In The Current Design - Clean Core Refactor Opportunity
 
