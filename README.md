@@ -93,7 +93,7 @@ The domain model lives in `Model`:
 - `HourStatus` represents the availability of one hour slot.
 - `OutboxMessage` represents an integration event written to the outbox file.
 
-## Side Effects In The Current Design
+## Side Effects In The Current Design - Clean Core Refactor Opportunity
 
 The current implementation mixes business logic and side effects in a few places:
 
@@ -102,7 +102,44 @@ The current implementation mixes business logic and side effects in a few places
 - System time is read directly when creating the schedule and when creating outbox messages.
 
 That makes this structure a good candidate for a later clean-core refactor, but this README documents the current design as it exists now.
+
+## High-Level Architecture After A Clean Core Refactor
+
+After the refactor, the goal is to keep business rules in a side-effect free core and move all I/O to the edges.
+
+- The core contains booking rules and use cases only (no Console, file system, or clock calls).
+- The application layer depends on interfaces for persistence, time, and messaging.
+- Infrastructure implements those interfaces (JSON now, database/API later).
+- UI layers (console today, API/web later) call into the same application use cases.
+- Dependency flow points inward: UI and infrastructure depend on application/core, never the other way around.
+
+In practice, this makes the booking logic reusable in an API without copying logic out of the console app.
+
+Recommended sequence:
+
+- Step 1: Clean Core first. Extract side effects to the edges and make use cases reusable.
+- Step 2: SOLID second. Tighten abstractions and responsibilities once the boundaries are clear.
+- Dependency inversion is still introduced early where needed, but as an enabler for clean-core boundaries rather than as an isolated goal.
+
+## Refactor Roadmap
+
+| Step | Focus | Output | Document |
+|---|---|---|---|
+| 1 | Clean Core | Side effects moved to edges, reusable use cases | [docs/CleanCoreRefactorPlan.md](docs/CleanCoreRefactorPlan.md) |
+| 2 | SOLID Hardening | Stronger responsibilities and abstractions | [docs/SolidHardeningPlan.md](docs/SolidHardeningPlan.md) |
+
+## Recommended Next Step From Terje Specs
+
+The selected text asks what makes reuse in an API difficult. The best next step is to prove reuse by extracting one API-ready use case in the clean-core phase:
+
+1. Start with "Create booking" as an application use case that takes input values and returns a result object.
+2. Keep Console read/write in `BookingApp`; do not call `Console` from `BookingService`.
+3. Let `BookingService` depend on repository and clock interfaces so the same use case can later be called from API/web.
+
+If this step is completed first, the same booking logic can be reused from Console today and from API/web later without duplication.
+
 ## Terje specs 
+
 Applikasjonen er et veldig enkelt bookingsystem.
 
 Tenk dere for eksempel:
