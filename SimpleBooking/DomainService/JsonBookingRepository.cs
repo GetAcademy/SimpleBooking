@@ -12,6 +12,7 @@ namespace SimpleBooking.DomainService
         {
             if (!File.Exists(FilePath))
             {
+                File.WriteAllText(FilePath, "[]");
                 return new List<Booking>();
             }
 
@@ -19,6 +20,7 @@ namespace SimpleBooking.DomainService
 
             if (string.IsNullOrWhiteSpace(json))
             {
+                File.WriteAllText(FilePath, "[]");
                 return new List<Booking>();
             }
 
