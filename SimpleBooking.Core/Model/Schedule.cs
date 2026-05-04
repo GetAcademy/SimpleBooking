@@ -1,6 +1,6 @@
-﻿namespace SimpleBooking.Model
+namespace SimpleBooking.Core.Model
 {
-    class Schedule
+    public class Schedule
     {
         public const int OpeningHour = 8;
         public const int ClosingHour = 16; // 8-15 er bookbare timer
@@ -35,20 +35,28 @@
             return result;
         }
 
-        public bool TryAddBooking(Booking booking)
+        public BookingFailureReason GetFailureReason(Booking booking)
         {
-            if (!IsBookableDate(booking)) return false;
-            if (!IsWithinOpeningHours(booking))return false;
-            if (HasConflict(booking)) return false;
+            if (!IsBookableDate(booking)) return BookingFailureReason.NotBookable;
+            if (!IsWithinOpeningHours(booking)) return BookingFailureReason.NotBookable;
+            if (HasConflict(booking)) return BookingFailureReason.HourAlreadyBooked;
 
+            return BookingFailureReason.None;
+        }
+
+        public void AddBooking(Booking booking)
+        {
             _bookings.Add(booking);
+            SortBookings();
+        }
+
+        private void SortBookings()
+        {
             _bookings.Sort((a, b) =>
             {
                 var dateComparison = a.Date.CompareTo(b.Date);
                 return dateComparison != 0 ? dateComparison : a.Hour.CompareTo(b.Hour);
             });
-
-            return true;
         }
 
         private bool HasConflict(Booking booking) =>

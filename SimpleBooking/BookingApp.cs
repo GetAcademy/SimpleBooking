@@ -1,17 +1,27 @@
-﻿using SimpleBooking.AppService;
+using SimpleBooking.Core.AppService;
+using SimpleBooking.Core.Model;
+using SimpleBooking.Infrastructure;
 
 namespace SimpleBooking
 {
     class BookingApp
     {
         private readonly BookingService _bookingService;
+        private readonly JsonBookingRepository _bookingRepository;
+        private readonly JsonOutboxRepository _outboxRepository;
         private readonly DateOnly _today;
         private DateOnly _currentDate;
 
-        public BookingApp()
+        public BookingApp(
+            BookingService bookingService,
+            JsonBookingRepository bookingRepository,
+            JsonOutboxRepository outboxRepository,
+            DateOnly today)
         {
-            _bookingService = new BookingService();
-            _today = DateOnly.FromDateTime(DateTime.Today);
+            _bookingService = bookingService;
+            _bookingRepository = bookingRepository;
+            _outboxRepository = outboxRepository;
+            _today = today;
             _currentDate = _today;
         }
 
@@ -35,7 +45,7 @@ namespace SimpleBooking
 
                 if (key == ConsoleKey.Add) _currentDate = _currentDate.AddDays(1);
                 else if (key == ConsoleKey.Subtract && _currentDate > _today) _currentDate = _currentDate.AddDays(-1);
-                else if (key == ConsoleKey.B) _bookingService.BookHour(_currentDate);
+                else if (key == ConsoleKey.B) BookHour();
                 else if (key == ConsoleKey.Q) isRunning = false;
             }
         }
@@ -55,6 +65,60 @@ namespace SimpleBooking
 
                 Console.WriteLine($"{status.Hour:00}:00  {statusText}");
             }
+        }
+
+        private void BookHour()
+        {
+            var hourStatuses = _bookingService.GetDayStatus(_currentDate);
+
+            if (hourStatuses.All(x => !x.IsAvailable))
+            {
+                ShowMessage("Det er ingen ledige timer å booke.");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.Write("Hvilken time vil du booke? ");
+            var hourText = Console.ReadLine();
+
+            if (!int.TryParse(hourText, out var hour))
+            {
+                ShowMessage("Ugyldig time.");
+                return;
+            }
+
+            Console.Write("Beskrivelse: ");
+            var description = Console.ReadLine() ?? "";
+
+            var result = _bookingService.BookHour(_currentDate, hour, description);
+
+            if (!result.Success)
+            {
+                ShowMessage(GetFailureMessage(result.FailureReason));
+                return;
+            }
+
+            _bookingRepository.Add(result.Booking!);
+            _outboxRepository.Append(result.BookingConfirmationRequested!);
+        }
+
+        private static string GetFailureMessage(BookingFailureReason failureReason)
+        {
+            return failureReason switch
+            {
+                BookingFailureReason.MissingDescription => "Beskrivelse må fylles ut.",
+                BookingFailureReason.HourAlreadyBooked => "Booking feilet.",
+                BookingFailureReason.NotBookable => "Booking feilet.",
+                _ => "Booking feilet."
+            };
+        }
+
+        private static void ShowMessage(string message)
+        {
+            Console.WriteLine();
+            Console.WriteLine(message);
+            Console.WriteLine("Trykk en tast for å fortsette...");
+            Console.ReadKey(intercept: true);
         }
     }
 }

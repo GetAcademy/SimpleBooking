@@ -1,6 +1,6 @@
-﻿namespace SimpleBooking.Model
+namespace SimpleBooking.Core.Model
 {
-    class HourStatus
+    public class HourStatus
     {
         public int Hour { get; }
         public bool IsAvailable { get; }

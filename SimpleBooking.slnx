@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="SimpleBooking/SimpleBooking.csproj" />
+  <Project Path="SimpleBooking.Core/SimpleBooking.Core.csproj" />
+  <Project Path="SimpleBooking.Core.Tests/SimpleBooking.Core.Tests.csproj" />
 </Solution>
