@@ -4,16 +4,24 @@ namespace SimpleBooking.Core.AppService
 {
     public class BookingService
     {
-        private readonly Schedule _schedule;
+        private readonly IBookingRepository _bookingRepository;
+        private readonly IOutboxRepository _outboxRepository;
+        private readonly IClock _clock;
 
-        public BookingService(IEnumerable<Booking> bookings, DateOnly today)
+        public BookingService(
+            IBookingRepository bookingRepository,
+            IOutboxRepository outboxRepository,
+            IClock clock)
         {
-            _schedule = new Schedule(bookings, today);
+            _bookingRepository = bookingRepository;
+            _outboxRepository = outboxRepository;
+            _clock = clock;
         }
 
         public List<HourStatus> GetDayStatus(DateOnly date)
         {
-            return _schedule.GetDayStatus(date);
+            var schedule = BuildSchedule();
+            return schedule.GetDayStatus(date);
         }
 
         public BookHourResult BookHour(DateOnly date, int hour, string description)
@@ -24,17 +32,25 @@ namespace SimpleBooking.Core.AppService
             }
 
             var booking = new Booking(date, hour, description.Trim());
-            var failureReason = _schedule.GetFailureReason(booking);
+            var schedule = BuildSchedule();
+            var failureReason = schedule.GetFailureReason(booking);
 
             if (failureReason != BookingFailureReason.None)
             {
                 return BookHourResult.Failed(failureReason);
             }
 
-            _schedule.AddBooking(booking);
+            _bookingRepository.Add(booking);
 
             var confirmation = new BookingConfirmationRequested(booking);
+            _outboxRepository.Append(confirmation);
+
             return BookHourResult.Ok(booking, confirmation);
+        }
+
+        private Schedule BuildSchedule()
+        {
+            return new Schedule(_bookingRepository.GetAll(), _clock.Today);
         }
     }
 }

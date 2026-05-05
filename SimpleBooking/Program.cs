@@ -4,9 +4,8 @@ using SimpleBooking.Infrastructure;
 
 var bookingRepository = new JsonBookingRepository();
 var outboxRepository = new JsonOutboxRepository();
-var bookings = bookingRepository.GetAll();
-var today = DateOnly.FromDateTime(DateTime.Today);
-var bookingService = new BookingService(bookings, today);
+var clock = new SystemClock();
+var bookingService = new BookingService(bookingRepository, outboxRepository, clock);
 
-var app = new BookingApp(bookingService, bookingRepository, outboxRepository, today);
+var app = new BookingApp(bookingService, clock);
 app.Run();

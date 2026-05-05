@@ -1,9 +1,10 @@
 using System.Text.Json;
+using SimpleBooking.Core.AppService;
 using SimpleBooking.Core.Model;
 
 namespace SimpleBooking.Infrastructure
 {
-    class JsonOutboxRepository
+    public class JsonOutboxRepository : IOutboxRepository
     {
         private const string FilePath = "outbox.json";
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };

@@ -2,10 +2,14 @@ namespace SimpleBooking.Core.Model
 {
     public class Booking
     {
-        public Guid Id { get; }
-        public DateOnly Date { get; }
-        public int Hour { get; }
-        public string Description { get; }
+        public Guid Id { get; private set; }
+        public DateOnly Date { get; private set; }
+        public int Hour { get; private set; }
+        public string Description { get; private set; } = "";
+
+        private Booking()
+        {
+        }
 
         public Booking(DateOnly date, int hour, string description)
             : this(Guid.NewGuid(), date, hour, description)

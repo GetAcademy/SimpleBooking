@@ -1,9 +1,10 @@
 using System.Text.Json;
+using SimpleBooking.Core.AppService;
 using SimpleBooking.Core.Model;
 
 namespace SimpleBooking.Infrastructure
 {
-    class JsonBookingRepository
+    public class JsonBookingRepository : IBookingRepository
     {
         private const string FilePath = "bookings.json";
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };

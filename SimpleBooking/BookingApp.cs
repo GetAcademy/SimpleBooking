@@ -1,28 +1,19 @@
 using SimpleBooking.Core.AppService;
 using SimpleBooking.Core.Model;
-using SimpleBooking.Infrastructure;
 
 namespace SimpleBooking
 {
-    class BookingApp
+    public class BookingApp
     {
         private readonly BookingService _bookingService;
-        private readonly JsonBookingRepository _bookingRepository;
-        private readonly JsonOutboxRepository _outboxRepository;
-        private readonly DateOnly _today;
+        private readonly IClock _clock;
         private DateOnly _currentDate;
 
-        public BookingApp(
-            BookingService bookingService,
-            JsonBookingRepository bookingRepository,
-            JsonOutboxRepository outboxRepository,
-            DateOnly today)
+        public BookingApp(BookingService bookingService, IClock clock)
         {
             _bookingService = bookingService;
-            _bookingRepository = bookingRepository;
-            _outboxRepository = outboxRepository;
-            _today = today;
-            _currentDate = _today;
+            _clock = clock;
+            _currentDate = _clock.Today;
         }
 
         public void Run()
@@ -44,7 +35,7 @@ namespace SimpleBooking
                 var key = Console.ReadKey(intercept: true).Key;
 
                 if (key == ConsoleKey.Add) _currentDate = _currentDate.AddDays(1);
-                else if (key == ConsoleKey.Subtract && _currentDate > _today) _currentDate = _currentDate.AddDays(-1);
+                else if (key == ConsoleKey.Subtract && _currentDate > _clock.Today) _currentDate = _currentDate.AddDays(-1);
                 else if (key == ConsoleKey.B) BookHour();
                 else if (key == ConsoleKey.Q) isRunning = false;
             }
@@ -98,8 +89,7 @@ namespace SimpleBooking
                 return;
             }
 
-            _bookingRepository.Add(result.Booking!);
-            _outboxRepository.Append(result.BookingConfirmationRequested!);
+            ShowMessage("Bookingen er registrert.");
         }
 
         private static string GetFailureMessage(BookingFailureReason failureReason)

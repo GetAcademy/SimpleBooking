@@ -1,0 +1,8 @@
+[
+  {
+    "Id": "6ac23b0b-d1d6-4ef8-81d6-c21ddc27ecf9",
+    "Type": "BookingConfirmationRequested",
+    "CreatedAt": "2026-05-05T12:35:22.088652Z",
+    "Payload": "{\u0022Id\u0022:\u0022b768a234-86a3-4447-94b0-6de3816a14f6\u0022,\u0022Date\u0022:\u00222026-05-06\u0022,\u0022Hour\u0022:9,\u0022Description\u0022:\u0022hallo\u0022}"
+  }
+]

@@ -2,4 +2,7 @@
   <Project Path="SimpleBooking/SimpleBooking.csproj" />
   <Project Path="SimpleBooking.Core/SimpleBooking.Core.csproj" />
   <Project Path="SimpleBooking.Core.Tests/SimpleBooking.Core.Tests.csproj" />
+  <Project Path="SimpleBooking.Infrastructure/SimpleBooking.Infrastructure.csproj" />
+  <Project Path="SimpleBooking.Api/SimpleBooking.Api.csproj" />
+  <Project Path="SimpleBooking.Api.Tests/SimpleBooking.Api.Tests.csproj" />
 </Solution>
