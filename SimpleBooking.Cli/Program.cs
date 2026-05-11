@@ -1,8 +1,10 @@
-﻿using System.Net.Http.Json;
+﻿using SimpleBooking.Cli;
 
 const string BaseUrl = "http://localhost:5106/api";
 
 using var client = new HttpClient();
+var bookingClient = new BookingClient(client, BaseUrl);
+var today = DateOnly.FromDateTime(DateTime.Today);
 
 while (true)
 {
@@ -44,40 +46,34 @@ while (true)
 
 async Task ListBookings()
 {
-    var response = await client.GetAsync($"{BaseUrl}/bookings");
-    response.EnsureSuccessStatusCode();
-
-    var bookings = await response.Content.ReadFromJsonAsync<List<Booking>>();
-    if (bookings == null || bookings.Count == 0)
+    var bookings = await bookingClient.GetBookingsAsync();
+    if (bookings.Count == 0)
     {
         Console.WriteLine("Ingen bookings funnet.");
         return;
     }
 
     Console.WriteLine();
-    Console.WriteLine($"{"ID",-5} {"Dato",-12} {"Time",-5} Beskrivelse");
-    Console.WriteLine(new string('-', 50));
+    Console.WriteLine($"{"ID",-36} {"Dato",-12} {"Time",-5} Beskrivelse");
+    Console.WriteLine(new string('-', 70));
     foreach (var b in bookings)
     {
-        Console.WriteLine($"{b.Id,-5} {b.Date,-12} {b.Hour,-5} {b.Description}");
+        Console.WriteLine($"{b.Id,-36} {b.Date,-12} {b.Hour,-5} {b.Description}");
     }
 }
 
 async Task ViewSchedule()
 {
-    Console.Write("Dato (yyyy-MM-dd): ");
-    var dateInput = Console.ReadLine()?.Trim();
-    if (!DateOnly.TryParse(dateInput, out var date))
-    {
-        Console.WriteLine("Ugyldig dato.");
-        return;
-    }
+    var date = ReadDate("Dato (yyyy-MM-dd): ");
+    if (!date.HasValue) return;
 
-    var response = await client.GetAsync($"{BaseUrl}/schedule/{date:yyyy-MM-dd}");
-    response.EnsureSuccessStatusCode();
+    await ShowSchedule(date.Value);
+}
 
-    var slots = await response.Content.ReadFromJsonAsync<List<HourSlot>>();
-    if (slots == null || slots.Count == 0)
+async Task ShowSchedule(DateOnly date)
+{
+    var slots = await bookingClient.GetScheduleAsync(date);
+    if (slots.Count == 0)
     {
         Console.WriteLine("Ingen timeinformasjon funnet.");
         return;
@@ -96,40 +92,73 @@ async Task ViewSchedule()
 
 async Task CreateBooking()
 {
-    Console.Write("Dato (yyyy-MM-dd): ");
-    var dateInput = Console.ReadLine()?.Trim();
-    Console.Write("Time (0-23): ");
-    var hourInput = Console.ReadLine()?.Trim();
+    var date = ReadDate("Dato (yyyy-MM-dd): ");
+    if (!date.HasValue) return;
+
+    var dateError = BookingValidator.ValidateDate(date.Value, today);
+    if (dateError != null)
+    {
+        Console.WriteLine($"Feil: {dateError}");
+        return;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Timeplan for valgt dato:");
+    await ShowSchedule(date.Value);
+    Console.WriteLine();
+
+    var hour = ReadHour("Time (8-15): ");
+    if (!hour.HasValue) return;
+
+    var hourError = BookingValidator.ValidateHour(hour.Value);
+    if (hourError != null)
+    {
+        Console.WriteLine($"Feil: {hourError}");
+        return;
+    }
+
     Console.Write("Beskrivelse: ");
-    var description = Console.ReadLine()?.Trim();
+    var description = Console.ReadLine()?.Trim() ?? "";
 
-    if (!DateOnly.TryParse(dateInput, out var date))
+    var descError = BookingValidator.ValidateDescription(description);
+    if (descError != null)
     {
-        Console.WriteLine("Ugyldig dato.");
+        Console.WriteLine($"Feil: {descError}");
         return;
     }
 
-    if (!int.TryParse(hourInput, out var hour))
-    {
-        Console.WriteLine("Ugyldig time.");
-        return;
-    }
+    var result = await bookingClient.CreateBookingAsync(date.Value, hour.Value, description);
 
-    var request = new { Date = date, Hour = hour, Description = description };
-    var response = await client.PostAsJsonAsync($"{BaseUrl}/bookings", request);
-
-    if (response.StatusCode == System.Net.HttpStatusCode.Created)
+    if (result.Success)
     {
-        var booking = await response.Content.ReadFromJsonAsync<Booking>();
-        Console.WriteLine($"Booking opprettet! ID: {booking?.Id}");
+        Console.WriteLine($"Booking opprettet! ID: {result.Booking!.Id}");
     }
     else
     {
-        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-        Console.WriteLine($"Feil: {error?.Message ?? response.ReasonPhrase}");
+        Console.WriteLine($"Feil: {result.ErrorMessage}");
     }
 }
 
-record Booking(Guid Id, DateOnly Date, int Hour, string Description);
-record HourSlot(int Hour, bool IsAvailable, string? Description);
-record ErrorResponse(string Error, string Message);
+DateOnly? ReadDate(string prompt)
+{
+    Console.Write(prompt);
+    var input = Console.ReadLine()?.Trim();
+    if (!DateOnly.TryParse(input, out var date))
+    {
+        Console.WriteLine("Ugyldig dato.");
+        return null;
+    }
+    return date;
+}
+
+int? ReadHour(string prompt)
+{
+    Console.Write(prompt);
+    var input = Console.ReadLine()?.Trim();
+    if (!int.TryParse(input, out var hour))
+    {
+        Console.WriteLine("Ugyldig time.");
+        return null;
+    }
+    return hour;
+}
