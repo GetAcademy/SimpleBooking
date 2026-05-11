@@ -5,4 +5,5 @@
   <Project Path="SimpleBooking.Infrastructure/SimpleBooking.Infrastructure.csproj" />
   <Project Path="SimpleBooking.Api/SimpleBooking.Api.csproj" />
   <Project Path="SimpleBooking.Api.Tests/SimpleBooking.Api.Tests.csproj" />
+  <Project Path="SimpleBooking.Cli/SimpleBooking.Cli.csproj" />
 </Solution>

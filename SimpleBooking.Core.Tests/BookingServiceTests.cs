@@ -59,7 +59,7 @@ namespace SimpleBooking.Core.Tests
 
             var statuses = service.GetDayStatus(date);
 
-            Assert.That(statuses.All(s => !s.IsAvailable), Is.True);
+            Assert.That(statuses.All(s => s.IsAvailable), Is.False);
         }
 
         [Test]
@@ -98,7 +98,16 @@ namespace SimpleBooking.Core.Tests
             Assert.That(result.BookingConfirmationRequested.Hour, Is.EqualTo(9));
             Assert.That(result.BookingConfirmationRequested.Description, Is.EqualTo("Teammøte"));
         }
+        [Test]
+        public void BookHour_same_day_fails()
+        {
+            var service = CreateService();
 
+            var result = service.BookHour(Today, 9, "Møte");
+
+            Assert.That(result.Success, Is.False);
+            Assert.That(result.FailureReason, Is.EqualTo(BookingFailureReason.NotBookable));
+        }
         [Test]
         public void BookHour_persists_booking_to_repository()
         {
@@ -245,7 +254,9 @@ namespace SimpleBooking.Core.Tests
         private static (
             InMemoryBookingRepository,
             InMemoryOutboxRepository,
-            FakeClock) CreateRawDoubles()
+            FakeClock
+        )
+        CreateRawDoubles()
         {
             return (new InMemoryBookingRepository(), new InMemoryOutboxRepository(), new FakeClock());
         }
